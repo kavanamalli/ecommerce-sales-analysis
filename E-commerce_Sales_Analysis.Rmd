@@ -1,0 +1,82 @@
+---
+title: "E-commerce Sales Analysis"
+author: "Kavana"
+date: "2025-07-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+
+```{r setwd}
+setwd("C:\\Users\\Admin\\Documents\\ecommerce_project")
+
+# Load the dataset
+getwd()
+ecom_data <- read_csv("data.csv")
+head(ecom_data)
+
+
+# Clean and transform
+ecom_clean <- ecom_data %>%
+  filter(!is.na(CustomerID)) %>%
+  filter(Quantity > 0, UnitPrice > 0) %>%
+  filter(!grepl("^C", InvoiceNo)) %>%
+  mutate(
+    TotalPrice = Quantity * UnitPrice,
+    InvoiceDate = mdy_hm(InvoiceDate),
+    Month = month(InvoiceDate, label = TRUE),
+    Weekday = wday(InvoiceDate, label = TRUE),
+    Hour = hour(InvoiceDate)
+  )
+
+top_products <- ecom_clean %>%
+  group_by(Description) %>%
+  summarise(TotalSales = sum(TotalPrice)) %>%
+  arrange(desc(TotalSales)) %>%
+  slice_head(n = 10)
+
+ggplot(top_products, aes(x = reorder(Description, TotalSales), y = TotalSales)) +
+  geom_col(fill = "skyblue") +
+  coord_flip() +
+  labs(title = "Top 10 Selling Products", x = "Product", y = "Total Sales")
+
+monthly_sales <- ecom_clean %>%
+  group_by(Month) %>%
+  summarise(MonthlySales = sum(TotalPrice))
+
+ggplot(monthly_sales, aes(x = Month, y = MonthlySales)) +
+  geom_bar(stat = "identity", fill = "coral") +
+  labs(title = "Monthly Sales Trend", x = "Month", y = "Total Sales")
+
+top_countries <- ecom_clean %>%
+  group_by(Country) %>%
+  summarise(CountrySales = sum(TotalPrice)) %>%
+  arrange(desc(CountrySales)) %>%
+  slice_head(n = 10)
+
+ggplot(top_countries, aes(x = reorder(Country, CountrySales), y = CountrySales)) +
+  geom_col(fill = "darkgreen") +
+  coord_flip() +
+  labs(title = "Top 10 Countries by Sales", x = "Country", y = "Total Sales")
+
+hourly_sales <- ecom_clean %>%
+  group_by(Hour) %>%
+  summarise(HourlySales = sum(TotalPrice))
+
+ggplot(hourly_sales, aes(x = Hour, y = HourlySales)) +
+  geom_line(color = "purple", linewidth = 1.2) +
+  labs(title = "Sales by Hour of Day", x = "Hour", y = "Total Sales")
+
+weekday_sales <- ecom_clean %>%
+  group_by(Weekday) %>%
+  summarise(WeekdaySales = sum(TotalPrice))
+
+ggplot(weekday_sales, aes(x = Weekday, y = WeekdaySales)) +
+  geom_col(fill = "steelblue") +
+  labs(title = "Sales by Day of the Week", x = "Weekday", y = "Total Sales")
+
